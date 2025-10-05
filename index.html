@@ -3,114 +3,903 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Grocery Navigator - Final</title>
-    
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Pantry Twin Navigator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1d2e;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Chat History Sidebar */
+        .history-sidebar {
+            width: 260px;
+            background: #16192b;
+            border-right: 1px solid #2d3142;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .history-sidebar.collapsed {
+            transform: translateX(-260px);
+        }
+
+        .history-header {
+            padding: 20px;
+            border-bottom: 1px solid #2d3142;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .new-chat-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .new-chat-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .history-item {
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            background: #1a1d2e;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .history-item:hover {
+            background: #2d3142;
+            border-color: #667eea;
+        }
+
+        .history-item.active {
+            background: #2d3142;
+            border-color: #667eea;
+        }
+
+        .history-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-item-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item-preview {
+            font-size: 11px;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item-date {
+            font-size: 10px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .delete-chat-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 5px;
+            transition: all 0.2s;
+            opacity: 0;
+            font-size: 16px;
+        }
+
+        .history-item:hover .delete-chat-btn {
+            opacity: 1;
+        }
+
+        .delete-chat-btn:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        .toggle-history-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #2d3142;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.2s;
+        }
+
+        .toggle-history-btn:hover {
+            background: #3d4152;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            width: 380px;
+            background: #16192b;
+            padding: 30px;
+            overflow-y: auto;
+            border-right: 1px solid #2d3142;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 13px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #f4a261;
+        }
+
+        .inventory-item, .list-item {
+            background: #1a1d2e;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #2d3142;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-ok {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .status-needed {
+            background: #6366f1;
+            color: white;
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1a1d2e;
+        }
+
+        .chat-tabs {
+            display: flex;
+            border-bottom: 1px solid #2d3142;
+            background: #16192b;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: #888;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab.active {
+            color: #10b981;
+            border-bottom: 2px solid #10b981;
+        }
+
+        .tab:hover {
+            color: #e0e0e0;
+        }
+
+        .tab-content {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.bot {
+            background: #10b981;
+            color: white;
+            margin-right: auto;
+        }
+
+        .message.user {
+            background: #2d3142;
+            color: #e0e0e0;
+            margin-left: auto;
+        }
+
+        .message.error {
+            background: #ef4444;
+            color: white;
+            margin-right: auto;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background: #16192b;
+            border-radius: 12px;
+            border: 1px solid #2d3142;
+        }
+
+        .input-area input, .input-area textarea {
+            flex: 1;
+            padding: 12px 15px;
+            background: #1a1d2e;
+            border: 1px solid #2d3142;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            resize: none;
+            font-family: inherit;
+        }
+
+        .input-area input:focus, .input-area textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            padding: 12px 25px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .upload-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+            font-size: 14px;
+        }
+
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .confirm-dialog.show {
+            display: flex;
+        }
+
+        .confirm-content {
+            background: #16192b;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #2d3142;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .confirm-content h3 {
+            margin-bottom: 15px;
+            color: #e0e0e0;
+        }
+
+        .confirm-content p {
+            color: #888;
+            margin-bottom: 25px;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .confirm-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .confirm-btn.delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .confirm-btn.cancel {
+            background: #2d3142;
+            color: #e0e0e0;
+        }
+
+        .confirm-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #16192b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2d3142;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3d4152;
+        }
+    </style>
 </head>
 <body>
+    <!-- Toggle History Button -->
+    <button class="toggle-history-btn" onclick="toggleHistory()">☰</button>
 
-<div class="app-container">
-    <h1>Smart Grocery Navigator 🛒</h1>
-    <p style="color: #7f8c8d; margin-bottom: 20px;">Safety, Savings, and Sustainability in one place.</p>
-
-    <div id="eco-points-display">
-        🌱 Eco Points: <span id="points-value">0</span>
-    </div>
-
-    <h2>⚙️ User Setup & Safety</h2>
-    <div class="input-group">
-        <label for="family-size" style="white-space: nowrap;">Family Size:</label>
-        <input type="number" id="family-size" value="1" min="1" max="10" style="width: 60px;">
-        <input type="text" id="allergy-input" placeholder="Allergies (e.g., Peanuts, Dairy)">
-        <button onclick="setAlerts()" style="background-color: #2c3e50;">Save Alerts</button>
-    </div>
-    
-    <div id="allergy-alert-banner">
-        ⚠️ ALERT: Cart contains items dangerous to your household!
-    </div>
-
-    <h2>📸 Recipe Carbon Footprint Analyzer</h2>
-    <div id="recipe-input" class="input-group">
-        <input type="file" id="recipe-image-input" accept="image/*" style="display: none;">
-        <button id="scan-recipe-btn" onclick="document.getElementById('recipe-image-input').click()">Take/Upload Picture</button>
-        <button id="analyze-recipe-btn" onclick="simulateRecipeScan()">Analyze Scan</button>
-    </div>
-    <div id="carbon-output">
-        Upload a recipe to estimate its carbon footprint.
-    </div>
-    <div id="learning-input-area" style="margin-top: 15px; border-top: 1px dotted #ccc; padding-top: 10px; display:none;">
-        <p style="font-style: italic; font-size: 0.9em;">*Learning Mode:* Help the app learn from your scan:</p>
-        <input type="text" id="simulated-recipe-name" placeholder="Recipe Name (e.g., Lentil Soup)">
-        <input type="text" id="simulated-ingredients" placeholder="Key Ingredients (comma-separated)">
-        <input type="text" id="simulated-carbon" placeholder="Carbon Value (e.g., 2.5)">
-        <button onclick="saveLearnedRecipe()" style="background-color: #3f51b5; margin-top: 10px;">Save & Learn</button>
-    </div>
-
-    <h2>💰 Weekly Discount Analyzer (ShopRite)</h2>
-    <div class="input-group">
-        <button id="check-discounts-btn" onclick="checkWeeklyDiscounts()">Check Personalized Deals</button>
-    </div>
-    <div id="discount-output" class="list-container">
-        Click the button to see deals relevant to your cart and pantry.
-    </div>
-
-
-    <h2>📝 Grocery List Generator</h2>
-    <div class="input-group">
-        <input type="text" id="list-recipe-name" placeholder="Recipe Name to generate list for">
-        <button id="generate-list-btn" onclick="generateGroceryList()">Generate List</button>
-    </div>
-    <div id="grocery-list-output" class="list-container">
-        The generated list will appear here.
-    </div>
-
-
-    <h2>🏠 Pantry Inventory (Expiry Tracker)</h2>
-    <div id="pantry-input" class="input-group">
-        <input type="text" id="pantry-item-name" placeholder="Item Name">
-        <input type="date" id="pantry-expiry-date" title="Expiry Date">
-        <button id="add-pantry-btn">Add to Pantry</button>
-    </div>
-    <div id="pantry-list" class="list-container"></div>
-
-    <h2>🛍️ Current Shopping Cart</h2>
-    <div id="cart-input" class="input-group">
-        <input type="text" id="cart-item-name" placeholder="Item Name">
-        <button id="add-cart-btn">Add to Cart</button>
-    </div>
-    <div id="cart-list" class="list-container"></div>
-
-    <button class="checkout-btn" onclick="triggerWasteMinimizer()">Proceed to Checkout (Check Waste & Safety)</button>
-</div>
-
-<div id="waste-alert-modal" class="modal">
-    <div class="modal-content">
-        <div class="waste-header">🚨 Waste Alert! Action Required</div>
-        <p id="alert-message">You have items at home expiring soon. Use them in these recipes:</p>
-        <p>At-Risk Ingredients:</p>
-        <div id="at-risk-display"></div>
-        <hr>
-        <div id="recipe-suggestions-container"></div>
-        <div class="modal-action">
-            <button id="add-missing-items-btn" onclick="addMissingItemsToCart()">Add Missing Items</button>
-            <button id="continue-checkout-btn" onclick="hideModal()">Ignore & Continue</button>
+    <!-- Confirmation Dialog -->
+    <div class="confirm-dialog" id="confirmDialog">
+        <div class="confirm-content">
+            <h3>Delete Conversation?</h3>
+            <p>This action cannot be undone.</p>
+            <div class="confirm-buttons">
+                <button class="confirm-btn delete" onclick="confirmDelete()">Delete</button>
+                <button class="confirm-btn cancel" onclick="cancelDelete()">Cancel</button>
+            </div>
         </div>
     </div>
-</div>
 
-<div id="chatbot-container">
-    <div id="chat-window">
-        <div id="chat-box" style="display: flex; flex-direction: column;"></div>
-        <div id="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Ask me anything...">
-            <button id="send-btn" onclick="processUserMessage()">Send</button>
+    <!-- Chat History Sidebar -->
+    <div class="history-sidebar" id="historySidebar">
+        <div class="history-header">
+            <button class="new-chat-btn" onclick="startNewChat()">
+                <span>✨</span> New Chat
+            </button>
+        </div>
+        <div class="history-list" id="historyList">
+            <!-- History items will be added here -->
         </div>
     </div>
-    <button id="chat-toggle-btn" onclick="toggleChatWindow()">🤖</button>
-</div>
 
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <div class="header">
+                <h1>Pantry Twin AI</h1>
+                <p class="subtitle"></p>
+            </div>
 
+            <div class="section">
+                <div class="section-header">
+                    🥫 <span>Current Pantry Inventory</span>
+                </div>
+                <div id="pantryList"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    📝 <span>Smart Grocery List</span>
+                </div>
+                <div id="groceryList"></div>
+            </div>
+        </div>
+
+        <!-- Chat Panel -->
+        <div class="chat-panel">
+            <div class="chat-tabs">
+                <button class="tab active" onclick="switchTab('chatbot')">
+                    💬 Pantry Twin
+                </button>
+                <button class="tab" onclick="switchTab('scan')">
+                    📄 Scan Receipt
+                </button>
+            </div>
+
+            <!-- Chatbot Tab -->
+            <div class="tab-content active" id="chatbotTab">
+                <div class="messages" id="messages"></div>
+                <div class="input-area">
+                    <textarea 
+                        id="userInput" 
+                        placeholder="Ask about recipes or what you need to buy..."
+                        rows="1"
+                        onkeypress="handleKeyPress(event)"
+                    ></textarea>
+                    <button class="send-btn" onclick="sendMessage()" id="sendBtn">Send</button>
+                </div>
+            </div>
+
+            <!-- Scan Receipt Tab -->
+            <div class="tab-content" id="scanTab">
+                <div class="messages" id="scanMessages">
+                    <div class="empty-state">
+                        Upload a receipt image to extract items automatically
+                    </div>
+                </div>
+                <div class="input-area">
+                    <input type="file" id="fileInput" class="file-input" accept="image/*" onchange="handleFileUpload()">
+                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        📷 Upload Receipt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:5000/api';
+        let currentChatId = null;
+        let chats = {};
+        let chatToDelete = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadChatHistory();
+            startNewChat();
+            loadPantry();
+            loadGroceryList();
+        });
+
+        // Chat History Management
+        function loadChatHistory() {
+            const saved = localStorage.getItem('pantry_chats');
+            if (saved) {
+                chats = JSON.parse(saved);
+                renderHistoryList();
+            }
+        }
+
+        function saveChatHistory() {
+            localStorage.setItem('pantry_chats', JSON.stringify(chats));
+        }
+
+        function startNewChat() {
+            const chatId = 'chat_' + Date.now();
+            currentChatId = chatId;
+            chats[chatId] = {
+                id: chatId,
+                title: 'New Conversation',
+                messages: [],
+                created: new Date().toISOString(),
+                lastUpdated: new Date().toISOString()
+            };
+            
+            // Clear messages display
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '';
+            
+            // Add welcome message
+            addMessage('bot', 'Hello! I am your Pantry Twin. I can check your inventory or add items to your grocery list. How can I help?');
+            
+            saveChatHistory();
+            renderHistoryList();
+        }
+
+        function loadChat(chatId) {
+            currentChatId = chatId;
+            const chat = chats[chatId];
+            
+            // Clear and reload messages
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '';
+            
+            chat.messages.forEach(msg => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `message ${msg.type}`;
+                msgDiv.textContent = msg.text;
+                messagesDiv.appendChild(msgDiv);
+            });
+            
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            renderHistoryList();
+        }
+
+        function deleteChat(chatId, event) {
+            event.stopPropagation();
+            chatToDelete = chatId;
+            
+            // Show confirmation dialog
+            const dialog = document.getElementById('confirmDialog');
+            dialog.classList.add('show');
+        }
+
+        function confirmDelete() {
+            if (chatToDelete) {
+                delete chats[chatToDelete];
+                saveChatHistory();
+                
+                // If we're deleting the current chat, start a new one
+                if (currentChatId === chatToDelete) {
+                    startNewChat();
+                } else {
+                    renderHistoryList();
+                }
+            }
+            
+            cancelDelete();
+        }
+
+        function cancelDelete() {
+            chatToDelete = null;
+            const dialog = document.getElementById('confirmDialog');
+            dialog.classList.remove('show');
+        }
+
+        function renderHistoryList() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            const sortedChats = Object.values(chats).sort((a, b) => 
+                new Date(b.lastUpdated) - new Date(a.lastUpdated)
+            );
+            
+            sortedChats.forEach(chat => {
+                const item = document.createElement('div');
+                item.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
+                
+                const preview = chat.messages.length > 1 ? 
+                    chat.messages[1].text.substring(0, 50) : 
+                    'Empty conversation';
+                
+                const date = new Date(chat.lastUpdated);
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                item.innerHTML = `
+                    <div class="history-item-content">
+                        <div class="history-item-title">${chat.title}</div>
+                        <div class="history-item-preview">${preview}...</div>
+                        <div class="history-item-date">${dateStr}</div>
+                    </div>
+                    <button class="delete-chat-btn" title="Delete chat">🗑️</button>
+                `;
+                
+                // Add click handler for loading chat (excluding delete button)
+                const contentDiv = item.querySelector('.history-item-content');
+                contentDiv.onclick = () => loadChat(chat.id);
+                
+                // Add click handler for delete button
+                const deleteBtn = item.querySelector('.delete-chat-btn');
+                deleteBtn.onclick = (e) => deleteChat(chat.id, e);
+                
+                historyList.appendChild(item);
+            });
+        }
+
+        function updateChatTitle(chatId) {
+            const chat = chats[chatId];
+            if (chat.messages.length > 1) {
+                const firstUserMessage = chat.messages.find(m => m.type === 'user');
+                if (firstUserMessage) {
+                    chat.title = firstUserMessage.text.substring(0, 30) + (firstUserMessage.text.length > 30 ? '...' : '');
+                }
+            }
+        }
+
+        function toggleHistory() {
+            const sidebar = document.getElementById('historySidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        // Message Management
+        function addMessage(type, text) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Save to current chat
+            if (currentChatId && chats[currentChatId]) {
+                chats[currentChatId].messages.push({ type, text, timestamp: new Date().toISOString() });
+                chats[currentChatId].lastUpdated = new Date().toISOString();
+                updateChatTitle(currentChatId);
+                saveChatHistory();
+                renderHistoryList();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const question = input.value.trim();
+            
+            if (!question) return;
+            
+            addMessage('user', question);
+            input.value = '';
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Thinking...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/converse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success' || data.status === 'action_success') {
+                    addMessage('bot', data.response || data.message);
+                    
+                    if (data.status === 'action_success') {
+                        await loadGroceryList();
+                    }
+                } else {
+                    addMessage('error', `ERROR: ${data.message}`);
+                }
+            } catch (error) {
+                addMessage('error', `ERROR: ${error.message}`);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send';
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Load Pantry
+        async function loadPantry() {
+            try {
+                const response = await fetch(`${API_BASE}/pantry`);
+                const items = await response.json();
+                
+                const pantryList = document.getElementById('pantryList');
+                pantryList.innerHTML = '';
+                
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'inventory-item';
+                    div.innerHTML = `
+                        <span>${item.name}</span>
+                        <span class="status-badge status-${item.status === 'ok' ? 'ok' : 'warning'}">
+                            ${item.status === 'ok' ? 'OK' : 'Warning'}
+                        </span>
+                    `;
+                    pantryList.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Error loading pantry:', error);
+            }
+        }
+
+        // Load Grocery List
+        async function loadGroceryList() {
+            try {
+                const response = await fetch(`${API_BASE}/grocery_list`);
+                const items = await response.json();
+                
+                const groceryList = document.getElementById('groceryList');
+                groceryList.innerHTML = '';
+                
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'list-item';
+                    div.innerHTML = `
+                        <span>${item}</span>
+                        <span class="status-badge status-needed">Needed</span>
+                    `;
+                    groceryList.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Error loading grocery list:', error);
+            }
+        }
+
+        // File Upload
+        async function handleFileUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            const scanMessages = document.getElementById('scanMessages');
+            scanMessages.innerHTML = '<div class="message bot">Scanning receipt...</div>';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch(`${API_BASE}/scan_receipt_live`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    scanMessages.innerHTML = '<div class="message bot">Items extracted successfully! Review and confirm:</div>';
+                    
+                    data.items.forEach(item => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'message bot';
+                        itemDiv.textContent = `${item.name} - $${item.price}`;
+                        scanMessages.appendChild(itemDiv);
+                    });
+                    
+                    // Auto-add to pantry
+                    await fetch(`${API_BASE}/add_scanned_items`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ items: data.items })
+                    });
+                    
+                    await loadPantry();
+                } else {
+                    scanMessages.innerHTML = `<div class="message error">ERROR: ${data.message}</div>`;
+                }
+            } catch (error) {
+                scanMessages.innerHTML = `<div class="message error">ERROR: ${error.message}</div>`;
+            }
+            
+            fileInput.value = '';
+        }
+    </script>
 </body>
 </html>
